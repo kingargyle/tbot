@@ -1,0 +1,8 @@
+This is a simple IRC bot for the #turmeric-dev channel.  It's main goal
+is to watch the builds, forums, and jira tracking system and inform
+the developers when new messages and events happen.
+
+It also does dumb things like check the weather and report the time.
+
+I haven't figured out how to have to make coffee yet.
+
