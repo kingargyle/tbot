@@ -28,7 +28,7 @@ import org.quartz.DateBuilder.IntervalUnit;
 import com.github.turmericbot.TurmericBot;
 
 /**
- * This class is used to process a weather command.  It takes in as parameters from the
+ * This class is used to retrieve a weather forecast.  It takes in as parameters from the
  * JobDetail the airport code and the channel that sent the request.
  * 
  * It handles all processing and formatting of the weather report.  All API calls make
@@ -37,21 +37,21 @@ import com.github.turmericbot.TurmericBot;
  * @author dcarver
  *
  */
-public class WeatherJob implements Job {
+public class ForecastJob implements Job {
 
-	private static final String WEATHER_REST_URL = "http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml?query=";
+	private static final String WEATHER_REST_URL = "http://api.wunderground.com/auto/wui/geo/ForecastXML/index.xml?query=";
 
 	private TurmericBot bot = null;
 	private String channel = null;
 
 	public static void scheduleJob(String channel, String message,
 			Scheduler scheduler) {
-		String airportCode = message.substring("weather".length() + 1);
-		JobDetail jobDetail = newJob(WeatherJob.class).withIdentity("weather")
+		String airportCode = message.substring("forecast".length() + 1);
+		JobDetail jobDetail = newJob(ForecastJob.class).withIdentity("forecast")
 				.usingJobData("channel", channel)
 				.usingJobData("airportCode", airportCode).build();
 
-		Trigger trigger = newTrigger().withIdentity("weathertrigger")
+		Trigger trigger = newTrigger().withIdentity("forecasttrigger")
 				.startAt(futureDate(1, IntervalUnit.SECOND)).build();
 
 		try {
@@ -59,24 +59,23 @@ public class WeatherJob implements Job {
 		} catch (SchedulerException e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	public void execute(JobExecutionContext context)
 			throws JobExecutionException {
 		JobDataMap dataMap = getDataMap(context);
 		bot = TurmericBot.getInstance();
-		String airPortCode = dataMap.getString("airportCode");
+		String location = dataMap.getString("airportCode");
 		channel = dataMap.getString("channel");
-		processWeather(airPortCode);
+		processForecast(location);
 	}
 
-	private void processWeather(String airPortCode) {
+	private void processForecast(String location) {
 		InputStream restXML = null;
 		try {
-			restXML = retrieveURL(airPortCode);
+			restXML = retrieveURL(location);
 			SAXReader reader = createXmlReader();
-			sendCurrentConditions(restXML, reader);
+			sendForecast(restXML, reader);
 		} catch (MalformedURLException ex) {
 			sendErrorMessage(channel, ex.getMessage());
 		} catch (IOException ex) {
@@ -98,35 +97,28 @@ public class WeatherJob implements Job {
 		return dataMap;
 	}
 
-	private void sendCurrentConditions(InputStream restXML, SAXReader reader) {
+	private void sendForecast(InputStream restXML, SAXReader reader) {
 		try {
 			Document doc = reader.read(restXML);
 
-			Node observation = doc.getRootElement();
+			Node forecast = doc.getRootElement();
 
-			String observations = currentConditions(observation);
-
-			bot.sendMessage(channel, observations);
+			sayPrediction(forecast);
 
 		} catch (DocumentException e) {
 			sendErrorMessage(channel, e.getMessage());
 		}
 	}
 
-	private String currentConditions(Node observation) {
-		String city = observation.valueOf("observation_location/full");
-		String country = observation.valueOf("observation_location/country");
-		String weather = observation.valueOf("weather");
-		String temperature = observation.valueOf("temperature_string");
-		String humidty = observation.valueOf("relative_humidity");
-		String wind_string = observation.valueOf("wind_string");
-		String wind_chill = observation.valueOf("windchill_string");
-
-		String observations = "Current conditions for " + city + " in "
-				+ country + ". " + weather + ", " + temperature
-				+ ", relative humidty " + humidty + ".  Wind is " + wind_string
-				+ " making it feel like " + wind_chill;
-		return observations;
+	private void sayPrediction(Node forecast) {
+		String today = forecast.valueOf("txt_forecast/forecastday[1]/fcttext");
+		String tonight = forecast.valueOf("txt_forecast/forecastday[2]/fcttext");
+		String title1 = forecast.valueOf("txt_forecast/forecastday[1]/title");
+		String title2 = forecast.valueOf("txt_forecast/forecastday[2]/title");
+		
+		bot.sendMessage(channel, title1 + ": " + today);
+		bot.sendMessage(channel, title2 + ": " + tonight);
+		
 	}
 
 	public InputStream retrieveURL(String airportCode)
