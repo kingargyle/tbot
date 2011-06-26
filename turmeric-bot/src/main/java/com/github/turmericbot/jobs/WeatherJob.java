@@ -25,6 +25,7 @@ import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.DateBuilder.IntervalUnit;
 
+import com.github.turmericbot.AbstractJob;
 import com.github.turmericbot.TurmericBot;
 
 /**
@@ -37,7 +38,7 @@ import com.github.turmericbot.TurmericBot;
  * @author dcarver
  *
  */
-public class WeatherJob implements Job {
+public class WeatherJob extends AbstractJob implements Job {
 
 	private static final String WEATHER_REST_URL = "http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml?query=";
 
@@ -92,12 +93,6 @@ public class WeatherJob implements Job {
 		}
 	}
 
-	private JobDataMap getDataMap(JobExecutionContext context) {
-		JobDetail jobdetail = context.getJobDetail();
-		JobDataMap dataMap = jobdetail.getJobDataMap();
-		return dataMap;
-	}
-
 	private void sendCurrentConditions(InputStream restXML, SAXReader reader) {
 		try {
 			Document doc = reader.read(restXML);
@@ -134,18 +129,6 @@ public class WeatherJob implements Job {
 		String url = WEATHER_REST_URL + airportCode;
 		URLConnection conn = new URL(url).openConnection();
 		return conn.getInputStream();
-	}
-
-	private void sendErrorMessage(String channel, String errorMessage) {
-		bot.sendMessage(channel, errorMessage);
-	}
-
-	private SAXReader createXmlReader() {
-		DocumentFactory factory = new DocumentFactory();
-
-		SAXReader xmlReader = new SAXReader();
-		xmlReader.setDocumentFactory(factory);
-		return xmlReader;
 	}
 
 }

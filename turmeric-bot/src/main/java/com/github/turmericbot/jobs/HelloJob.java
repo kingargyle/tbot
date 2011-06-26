@@ -4,6 +4,9 @@ import static org.quartz.DateBuilder.evenMinuteDate;
 import static org.quartz.JobBuilder.newJob;
 import static org.quartz.TriggerBuilder.newTrigger;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.util.Date;
 
 import org.quartz.Job;
@@ -15,9 +18,10 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 
+import com.github.turmericbot.AbstractJob;
 import com.github.turmericbot.TurmericBot;
 
-public class HelloJob implements Job {
+public class HelloJob extends AbstractJob implements Job {
 
 	public void execute(JobExecutionContext context) throws JobExecutionException {
 		JobDetail jobdetail = context.getJobDetail();
@@ -46,8 +50,12 @@ public class HelloJob implements Job {
 			e.printStackTrace();
 		}
 		return;
+	}
 
-		
+	@Override
+	protected InputStream retrieveURL(String param)
+			throws MalformedURLException, IOException {
+		return null;
 	}
 
 }

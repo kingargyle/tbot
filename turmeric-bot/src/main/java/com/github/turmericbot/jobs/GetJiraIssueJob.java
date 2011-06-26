@@ -29,7 +29,7 @@ import com.github.turmericbot.AbstractJob;
 import com.github.turmericbot.TurmericBot;
 
 /**
- * This class is used to retrieve a weather forecast.  It takes in as parameters from the
+ * This class is used to process a weather command.  It takes in as parameters from the
  * JobDetail the airport code and the channel that sent the request.
  * 
  * It handles all processing and formatting of the weather report.  All API calls make
@@ -38,42 +38,46 @@ import com.github.turmericbot.TurmericBot;
  * @author dcarver
  *
  */
-public class ForecastJob extends AbstractJob implements Job {
+public class GetJiraIssueJob extends AbstractJob implements Job {
 
-	private static final String WEATHER_REST_URL = "http://api.wunderground.com/auto/wui/geo/ForecastXML/index.xml?query=";
+	private static final String JIRA_ISSUE_URL = "https://www.ebayopensource.org/jira/si/jira.issueviews:issue-xml/TURMERIC-";
+
+	private TurmericBot bot = null;
+	private String channel = null;
 
 	public static void scheduleJob(String channel, String message,
 			Scheduler scheduler) {
-		String airportCode = message.substring("forecast".length() + 1);
-		JobDetail jobDetail = newJob(ForecastJob.class).withIdentity("forecast")
+		String issueNo = message.substring("jira".length() + 1);
+		JobDetail jobDetail = newJob(GetJiraIssueJob.class).withIdentity("get_jira_issue")
 				.usingJobData("channel", channel)
-				.usingJobData("airportCode", airportCode).build();
+				.usingJobData("issue", issueNo).build();
 
-		Trigger trigger = newTrigger().withIdentity("forecasttrigger")
-				.startAt(futureDate(1, IntervalUnit.SECOND)).build();
+		Trigger trigger = newTrigger().withIdentity("get_jira_trigger")
+				.startAt(futureDate(20, IntervalUnit.MILLISECOND)).build();
 
 		try {
 			scheduler.scheduleJob(jobDetail, trigger);
 		} catch (SchedulerException e) {
 			e.printStackTrace();
 		}
+
 	}
 
 	public void execute(JobExecutionContext context)
 			throws JobExecutionException {
 		JobDataMap dataMap = getDataMap(context);
 		bot = TurmericBot.getInstance();
-		String location = dataMap.getString("airportCode");
+		String issueNo = dataMap.getString("issue");
 		channel = dataMap.getString("channel");
-		processForecast(location);
+		processJiraRequest(issueNo);
 	}
 
-	private void processForecast(String location) {
+	private void processJiraRequest(String issueNo) {
 		InputStream restXML = null;
 		try {
-			restXML = retrieveURL(location);
+			restXML = retrieveURL(issueNo);
 			SAXReader reader = createXmlReader();
-			sendForecast(restXML, reader);
+			sendCurrentConditions(restXML, reader);
 		} catch (MalformedURLException ex) {
 			sendErrorMessage(channel, ex.getMessage());
 		} catch (IOException ex) {
@@ -89,38 +93,35 @@ public class ForecastJob extends AbstractJob implements Job {
 		}
 	}
 
-
-	private void sendForecast(InputStream restXML, SAXReader reader) {
+	private void sendCurrentConditions(InputStream restXML, SAXReader reader) {
 		try {
 			Document doc = reader.read(restXML);
 
-			Node forecast = doc.getRootElement();
+			Node rss = doc.getRootElement();
 
-			sayPrediction(forecast);
+			String summary = jiraSummary(rss);
+
+			bot.sendMessage(channel, summary);
 
 		} catch (DocumentException e) {
 			sendErrorMessage(channel, e.getMessage());
 		}
 	}
 
-	private void sayPrediction(Node forecast) {
-		String today = forecast.valueOf("txt_forecast/forecastday[1]/fcttext");
-		String tonight = forecast.valueOf("txt_forecast/forecastday[2]/fcttext");
-		String title1 = forecast.valueOf("txt_forecast/forecastday[1]/title");
-		String title2 = forecast.valueOf("txt_forecast/forecastday[2]/title");
+	private String jiraSummary(Node rss) {
+		String title = rss.valueOf("channel/item/title");
+		String status = rss.valueOf("channel/item/status");
+		String link = rss.valueOf("channel/item/link");
 		
-		bot.sendMessage(channel, title1 + ": " + today);
-		bot.sendMessage(channel, title2 + ": " + tonight);
-		
+		String summary = status + " - " + title + " - " + link;
+		return summary;
 	}
 
-	@Override
-	public InputStream retrieveURL(String airportCode)
+	public InputStream retrieveURL(String issueNo)
 			throws MalformedURLException, IOException {
-		String url = WEATHER_REST_URL + airportCode;
+		String url = JIRA_ISSUE_URL + issueNo + "/TURMERIC-" + issueNo + ".xml";
 		URLConnection conn = new URL(url).openConnection();
 		return conn.getInputStream();
 	}
-
 
 }
