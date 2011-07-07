@@ -10,6 +10,7 @@ import com.github.turmericbot.jobs.HelloJob;
 import com.github.turmericbot.jobs.HelpJob;
 import com.github.turmericbot.jobs.HudsonJobStatusJob;
 import com.github.turmericbot.jobs.WeatherJob;
+import com.github.turmericbot.jobs.background.ForumPostsJob;
 import com.github.turmericbot.jobs.background.HudsonStatusJob;
 
 public class TurmericBot extends PircBot {
@@ -77,6 +78,7 @@ public class TurmericBot extends PircBot {
 		if (sender.equals(getName())) {
 			sendMessage(channel,  "Reporting for duty!");
 			HudsonStatusJob.scheduleJob(channel, null, scheduler);
+			ForumPostsJob.scheduleJob(channel, null, scheduler);
 			return;
 		}
 		

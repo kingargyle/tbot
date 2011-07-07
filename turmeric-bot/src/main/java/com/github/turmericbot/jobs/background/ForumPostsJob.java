@@ -36,7 +36,7 @@ import com.github.turmericbot.AbstractJob;
 import com.github.turmericbot.TurmericBot;
 
 /**
- * This class polls the Hudson build server's RSS feeds.  It looks for any job that has been updated
+ * This class polls the Forums RSS feeds and will  build server's RSS feeds.  It looks for any job that has been updated
  * since the last time it ran.
  *  
  * @author dcarver
@@ -44,9 +44,9 @@ import com.github.turmericbot.TurmericBot;
  */
 @PersistJobDataAfterExecution
 @DisallowConcurrentExecution
-public class HudsonStatusJob extends AbstractJob implements Job {
+public class ForumPostsJob extends AbstractJob implements Job {
 
-	private static final String HUDSON_STATUS_URL = "http://www.ebayopensource.org/hudson/view/Turmeric%20CI%20Dashboard/rssLatest";
+	private static final String FORUM_URL = "https://www.ebayopensource.org/forum/feed.php?mode=m&l=1&basic=1&frm=2&n=10&format=atom";
 	private XMLGregorianCalendar lastcheck;
 
 	private TurmericBot bot = null;
@@ -60,13 +60,13 @@ public class HudsonStatusJob extends AbstractJob implements Job {
 
 		try {
 			checkDate = DatatypeFactory.newInstance().newXMLGregorianCalendar(new GregorianCalendar());
-			JobDetail jobDetail = newJob(HudsonStatusJob.class)
-					.withIdentity("hudsonstatus")
+			JobDetail jobDetail = newJob(ForumPostsJob.class)
+					.withIdentity("forumstatus")
 					.usingJobData("channel", channel)
 					.usingJobData("lastupdate", checkDate.toXMLFormat()).build();
 
 			Trigger trigger = newTrigger()
-					.withIdentity("hudson_status_trigger")
+					.withIdentity("forum_status_trigger")
 					.startAt(futureDate(1, IntervalUnit.MINUTE))
 					.build();
 			
@@ -92,7 +92,7 @@ public class HudsonStatusJob extends AbstractJob implements Job {
 			scheduler.addJob(jobDetail, true);
 			
 			Trigger trigger = newTrigger()
-					.withIdentity("hudson_status_trigger")
+					.withIdentity("forum_status_trigger")
 					.startAt(futureDate(1, IntervalUnit.MINUTE))
 					.build();
 			scheduler.rescheduleJob(oldTrigger.getKey(), trigger);
@@ -112,8 +112,8 @@ public class HudsonStatusJob extends AbstractJob implements Job {
 		channel = dataMap.getString("channel");
 		try {
 			lastcheck = DatatypeFactory.newInstance().newXMLGregorianCalendar(dataMap.getString("lastupdate"));
-//			bot.sendMessage(channel, "Checking Hudson Status");
-			processHudsonStatus();
+//			bot.sendMessage(channel, "Checking Forum Status");
+			processForumStatus();
 			rescheduleJob(context);
 //			bot.sendMessage(channel, "Going back to sleep.");
 		} catch (DatatypeConfigurationException e) {
@@ -121,16 +121,14 @@ public class HudsonStatusJob extends AbstractJob implements Job {
 		}
 	}
 
-	private void processHudsonStatus() {
+	private void processForumStatus() {
 		InputStream restXML = null;
 		try {
 			restXML = retrieveURL();
 			SAXReader reader = createXmlReader();
-			sendCurrentConditions(restXML, reader);
-		} catch (MalformedURLException ex) {
-			sendErrorMessage(channel, ex.getMessage());
-		} catch (IOException ex) {
-			sendErrorMessage(channel, ex.getMessage());
+			sendRecentUpdates(restXML, reader);
+		} catch (Exception ex) {
+			sendErrorMessage(channel, ex.getMessage());		
 		} finally {
 			if (restXML != null) {
 				try {
@@ -142,7 +140,7 @@ public class HudsonStatusJob extends AbstractJob implements Job {
 		}
 	}
 
-	private void sendCurrentConditions(InputStream restXML, SAXReader reader) {
+	private void sendRecentUpdates(InputStream restXML, SAXReader reader) {
 		try {
 			Document doc = reader.read(restXML);
 
@@ -151,16 +149,16 @@ public class HudsonStatusJob extends AbstractJob implements Job {
 			List<Node> nodes = feed.selectNodes("a:entry");
 
 			for (Node entryNode : nodes) {
-				String updated = entryNode.valueOf("a:updated");
+				String published = entryNode.valueOf("a:published");
 
 				XMLGregorianCalendar entryDate = DatatypeFactory.newInstance()
-						.newXMLGregorianCalendar(updated);
+						.newXMLGregorianCalendar(published);
 				
 				if (entryDate.compare(lastcheck) >= 0) {
 					String title = entryNode.valueOf("a:title");
-					title = title.replace("?", "running");
+					String author = entryNode.valueOf("a:author/a:name");
 					String link = entryNode.valueOf("a:link/@href");
-					String summary = title + " - " + link;
+					String summary = title + " (" + author + ") "  + link;
 					bot.sendMessage(channel, summary);
 				}
 			}
@@ -172,7 +170,7 @@ public class HudsonStatusJob extends AbstractJob implements Job {
 	}
 
 	private InputStream retrieveURL() throws MalformedURLException, IOException {
-		URLConnection conn = new URL(HUDSON_STATUS_URL).openConnection();
+		URLConnection conn = new URL(FORUM_URL).openConnection();
 		return conn.getInputStream();
 	}
 
