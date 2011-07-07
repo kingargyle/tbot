@@ -1,5 +1,7 @@
 package com.github.turmericbot;
 
+import java.util.Random;
+
 import org.jibble.pircbot.PircBot;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -104,6 +106,23 @@ public class TurmericBot extends PircBot {
 			scheduler.shutdown();
 		} catch (SchedulerException ex) {
 			
+		}
+	}
+	
+	@Override
+	protected void onAction(String sender, String login, String hostname, String target,
+			String action) {
+		
+		String channel = "#turmeric-dev";
+		
+		if (sender.equals(getName())) {
+			return;
+		}
+				
+		if (action.contains("trout")) {
+				sendAction(channel, "grabs the trout and tosses it back in the water.");
+				sendMessage(channel, sender + ", TROUTS HAVE FEELINGS YOU KNOW!!!");
+				sendMessage(channel,"FREE THE TROUTS!!! FREE THE TROUTS!!!");
 		}
 	}
 	
