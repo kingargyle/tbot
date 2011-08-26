@@ -1,6 +1,6 @@
 package com.github.turmericbot;
 
-import java.util.Random;
+import java.util.Properties;
 
 import org.jibble.pircbot.PircBot;
 import org.quartz.Scheduler;
@@ -21,9 +21,15 @@ public class TurmericBot extends PircBot {
 	
 	private static TurmericBot bot = new TurmericBot();
 	
+	private String botName;
+	private String botChannel;
 	
 	private TurmericBot() {
-		setName("turmeric-bot2");
+		Properties p = TurmericProperties.getProperties();
+		botName = p.getProperty(TurmericProperties.BOT_NAME);
+		botChannel = p.getProperty(TurmericProperties.CHANNEL);
+		
+		setName(botName);
 	}
 	
 	public static TurmericBot getInstance() {
@@ -72,7 +78,7 @@ public class TurmericBot extends PircBot {
 	
 	@Override
 	protected void onQuit(String sourceNick, String login, String hostName, String reasn) {
-		sendMessage("#turmeric-dev", "Bye, bye " + sourceNick + " come back soon.");
+		sendMessage(botChannel, "Bye, bye " + sourceNick + " come back soon.");
 	}
 	
 	@Override
@@ -112,8 +118,7 @@ public class TurmericBot extends PircBot {
 	@Override
 	protected void onAction(String sender, String login, String hostname, String target,
 			String action) {
-		
-		String channel = "#turmeric-dev";
+		String channel = botChannel;
 		
 		if (sender.equals(getName())) {
 			return;
