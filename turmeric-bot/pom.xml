@@ -30,7 +30,7 @@
 	</dependencies>
 
 	<build>
-		<plugins>
+		<!-- <plugins>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
@@ -38,7 +38,39 @@
 					<mainClass>com.github.turmericbot.TurmericBotMain</mainClass>
 				</configuration>
 			</plugin>
-		</plugins>
+		</plugins>-->
+		<plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.1</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+            </manifest>
+            <manifestEntries>
+              <Main-Class>com.github.turmericbot.TurmericBotMain</Main-Class>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-shade-plugin</artifactId>
+		<executions>
+			<execution>
+				<phase>package</phase>
+				<goals>
+					<goal>shade</goal>
+				</goals>
+			</execution>
+		</executions>
+		<configuration>
+			<finalName>full-${artifactId}-${version}</finalName>
+		</configuration>
+	</plugin>
+    </plugins>
 	</build>
 
 </project>
