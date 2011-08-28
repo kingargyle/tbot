@@ -12,6 +12,9 @@ public class TurmericProperties {
 	public static final String CHANNEL = "turmeric.channel";
 	public static final String BOT_NAME = "turmeric.botname";
 	
+	public static final String JIRA_URL = "turmeric.jira.url";
+	public static final String JIRA_PREFIX = "turmeric.jira.prefix";
+	
 	private static Properties p = new Properties();
 	
 	public static Properties getProperties(boolean forceReload) {
@@ -29,6 +32,8 @@ public class TurmericProperties {
 			p.setProperty(SERVER, "irc.freenode.net");
 			p.setProperty(CHANNEL, "#turmeric-dev");
 			p.setProperty(BOT_NAME, "turmeric-bot2");
+			p.setProperty(JIRA_URL, "https://www.ebayopensource.org/jira/si/jira.issueviews:issue-xml/");
+			p.setProperty(JIRA_PREFIX, "TURMERIC");
 			
 			return p;
 		}

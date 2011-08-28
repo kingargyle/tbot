@@ -23,11 +23,15 @@ public class TurmericBot extends PircBot {
 	
 	private String botName;
 	private String botChannel;
+	private String jiraURL;
+	private String jiraPrefix;
 	
 	private TurmericBot() {
 		Properties p = TurmericProperties.getProperties();
 		botName = p.getProperty(TurmericProperties.BOT_NAME);
 		botChannel = p.getProperty(TurmericProperties.CHANNEL);
+		jiraURL = p.getProperty(TurmericProperties.JIRA_URL);
+		jiraPrefix = p.getProperty(TurmericProperties.JIRA_PREFIX);
 		
 		setName(botName);
 	}
@@ -61,7 +65,7 @@ public class TurmericBot extends PircBot {
 		}
 		
 		if (message.startsWith("jira")) {
-			GetJiraIssueJob.scheduleJob(channel, message, scheduler);
+			GetJiraIssueJob.scheduleJob(channel, message, jiraURL, jiraPrefix, scheduler);
 			return;
 		}
 		
