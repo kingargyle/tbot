@@ -13,6 +13,11 @@ public class TurmericBotMain {
 		
 		bot.setVerbose(true);
 		bot.connect(p.getProperty(TurmericProperties.SERVER));
-		bot.joinChannel(p.getProperty(TurmericProperties.CHANNEL));
+		
+		String[] channels = p.getProperty(TurmericProperties.CHANNEL).split(";");
+		
+		for(String channel : channels) {
+			bot.joinChannel(channel);
+		}
 	}
 }
