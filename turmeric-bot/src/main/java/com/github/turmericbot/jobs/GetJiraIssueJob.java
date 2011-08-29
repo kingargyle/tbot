@@ -12,7 +12,6 @@ import java.net.URLConnection;
 
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
-import org.dom4j.DocumentFactory;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.quartz.Job;
@@ -40,17 +39,19 @@ import com.github.turmericbot.TurmericBot;
  */
 public class GetJiraIssueJob extends AbstractJob implements Job {
 
-	private static final String JIRA_ISSUE_URL = "https://www.ebayopensource.org/jira/si/jira.issueviews:issue-xml/TURMERIC-";
-
 	private TurmericBot bot = null;
 	private String channel = null;
-
-	public static void scheduleJob(String channel, String message,
+	private String jiraURL = null;
+	private String jiraPrefix = null;
+	
+	public static void scheduleJob(String channel, String message, String jiraURL, String jiraPrefix,
 			Scheduler scheduler) {
 		String issueNo = message.substring("jira".length() + 1);
 		JobDetail jobDetail = newJob(GetJiraIssueJob.class).withIdentity("get_jira_issue")
 				.usingJobData("channel", channel)
-				.usingJobData("issue", issueNo).build();
+				.usingJobData("issue", issueNo)
+				.usingJobData("jiraURL", jiraURL)
+				.usingJobData("jiraPrefix", jiraPrefix).build();
 
 		Trigger trigger = newTrigger().withIdentity("get_jira_trigger")
 				.startAt(futureDate(20, IntervalUnit.MILLISECOND)).build();
@@ -69,6 +70,8 @@ public class GetJiraIssueJob extends AbstractJob implements Job {
 		bot = TurmericBot.getInstance();
 		String issueNo = dataMap.getString("issue");
 		channel = dataMap.getString("channel");
+		jiraURL = dataMap.getString("jiraURL");
+		jiraPrefix = dataMap.getString("jiraPrefix");
 		processJiraRequest(issueNo);
 	}
 
@@ -119,7 +122,7 @@ public class GetJiraIssueJob extends AbstractJob implements Job {
 
 	public InputStream retrieveURL(String issueNo)
 			throws MalformedURLException, IOException {
-		String url = JIRA_ISSUE_URL + issueNo + "/TURMERIC-" + issueNo + ".xml";
+		String url = jiraURL + jiraPrefix + "-" + issueNo + "/" + jiraPrefix + "-" + issueNo + ".xml";
 		URLConnection conn = new URL(url).openConnection();
 		return conn.getInputStream();
 	}
